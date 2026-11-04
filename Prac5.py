@@ -1,260 +1,99 @@
-import re
-
-# --- Helper: Intent Detection ---
-def detect_intent(user_input):
-    user_input = user_input.lower()
-
-    if any(word in user_input for word in ["hi", "hello", "hey"]):
-        return "greeting"
-    elif any(word in user_input for word in ["casual", "friends", "daily"]):
-        return "casual"
-    elif any(word in user_input for word in ["party", "club", "formal"]):
-        return "party"
-    elif any(word in user_input for word in ["size", "fit", "measurement"]):
-        return "size"
-    elif any(word in user_input for word in ["order", "track", "status"]):
-        return "order"
-    elif any(word in user_input for word in ["delivery", "shipping"]):
-        return "delivery"
-    elif any(word in user_input for word in ["exit", "bye", "quit"]):
-        return "exit"
-    else:
-        return "unknown"
 
+# 1. Import libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-# --- Outfit Functions ---
-def casual_outfits():
-    print("\nBot: Here are some casual outfit ideas 😊\n")
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 
-    print("👉 Outfit 1:")
-    print("• White oversized t-shirt")
-    print("• Light blue denim jeans")
-    print("• White sneakers\n")
+# 2. Load dataset
+df = pd.read_csv("sales_data_sample.csv", encoding="latin1")
 
-    print("👉 Outfit 2:")
-    print("• Pastel hoodie")
-    print("• Black joggers")
-    print("• Chunky sneakers\n")
+# 3. Select numerical features for clustering
+features = ["QUANTITYORDERED", "PRICEEACH", "SALES"]
+X = df[features].copy()
+X = X.replace([np.inf, -np.inf], np.nan)
+X = X.dropna()
 
-    print("👉 Outfit 3:")
-    print("• Floral shirt")
-    print("• Beige chinos")
-    print("• Slip-on shoes\n")
+# 5. Scale the features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
+# 6. Elbow Method
+inertia_values = []
+k_values = range(1, 11)
 
-def party_outfits():
-    print("\nBot: Here are some party outfit ideas 🔥\n")
+for k in k_values:
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+    kmeans.fit(X_scaled)
+    inertia_values.append(kmeans.inertia_)
 
-    print("👉 Outfit 1:")
-    print("• Black fitted dress")
-    print("• Heels")
-    print("• Statement earrings\n")
+# 7. Plot Elbow graph
+plt.figure(figsize=(8, 5))
+plt.xlabel("Number of Clusters (K)")
+plt.ylabel("Inertia (WCSS)")
+plt.title("Elbow Method for Optimal K")
+plt.xticks(list(k_values))
+plt.grid(True)
+plt.plot(k_values, inertia_values, marker="o")
+plt.show()
 
-    print("👉 Outfit 2:")
-    print("• Leather jacket")
-    print("• Crop top")
-    print("• High-waisted jeans\n")
+# 8. Select K after examining the elbow graph
+optimal_k = 3
+kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
 
-    print("👉 Outfit 3:")
-    print("• Shimmer top")
-    print("• Mini skirt")
-    print("• Strappy heels\n")
+# 9. Fit the final model and assign cluster labels
+clusters = kmeans.fit_predict(X_scaled)
+X["Cluster"] = clusters
 
+# 10. Display cluster counts
+print("\nNumber of records in each cluster:")
+print(X["Cluster"].value_counts().sort_index())
 
-def size_help():
-    print("\nBot: I can help with sizing 😊")
-    height = input("Bot: What's your height? ")
-    size = input("Bot: What size do you usually wear? ")
+# 11. Display cluster-wise averages
+print("\nCluster-wise average values:")
+print(X.groupby("Cluster")[features].mean().round(2))
 
-    print("\nBot: Based on your input:")
-    print("• Tops: Go with your regular size (" + size + ")")
-    print("• Bottoms: Check waist measurements for best fit\n")
+# 12. Evaluate clustering with silhouette score
+if len(set(clusters)) > 1:
+    print("\nSilhouette Score:", round(silhouette_score(X_scaled, clusters), 4))
 
-    print("Bot: Suggested outfits in your size:\n")
 
-    print("👉 Outfit 1:")
-    print("• Regular fit t-shirt")
-    print("• Slim fit jeans\n")
 
-    print("👉 Outfit 2:")
-    print("• Relaxed fit shirt")
-    print("• Straight trousers\n")
 
-    print("👉 Outfit 3:")
-    print("• Oversized sweatshirt")
-    print("• Joggers\n")
 
 
-def order_status():
-    order_id = input("Bot: Please enter your order ID: ")
-    print(f"Bot: Order {order_id} is out for delivery 🚚 (arriving in 1–2 days)\n")
 
-    print("Bot: Meanwhile, check these styles:\n")
 
-    print("👉 Outfit 1:")
-    print("• Denim jacket")
-    print("• White t-shirt")
-    print("• Black jeans\n")
 
-    print("👉 Outfit 2:")
-    print("• Polo t-shirt")
-    print("• Chinos")
-    print("• Sneakers\n")
 
-    print("👉 Outfit 3:")
-    print("• Kurta")
-    print("• Slim pants")
-    print("• Ethnic sandals\n")
 
 
-def delivery_info():
-    print("Bot: Delivery takes 2–5 business days depending on your location 🚚")
 
 
-# --- Main Chatbot ---
-def fashion_chatbot():
-    print("Fashion Bot: Welcome to StyleMate - Your Fashion Assistant!")
-    print("Bot: Ask me about outfits, sizes, or orders. Type 'exit' to quit.\n")
 
-    while True:
-        user_input = input("You: ")
-        intent = detect_intent(user_input)
 
-        if intent == "exit":
-            print("Bot: Stay stylish! Goodbye ✨")
-            break
 
-        elif intent == "greeting":
-            print("Bot: Hi! What are you looking for today? Casual or party outfit?")
 
-        elif intent == "casual":
-            print("Bot: Great choice! Casual looks are always comfy 😄")
-            casual_outfits()
 
-        elif intent == "party":
-            print("Bot: Let's get you party-ready 🎉")
-            party_outfits()
 
-        elif intent == "size":
-            size_help()
+# 13. Visualize clusters using PCA
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
 
-        elif intent == "order":
-            order_status()
-
-        elif intent == "delivery":
-            delivery_info()
-
-        else:
-            print("Bot: I didn’t understand that.")
-            print("Bot: Try asking about casual, party, size, or orders.\n")
-
-
-# Run the chatbot
-fashion_chatbot()
-
-'''
-┌──(vmsin0㉿martian)-[~/STUDY/Manual/AI]
-└─$  python3 Prac5.py
-Fashion Bot: Welcome to StyleMate - Your Fashion Assistant!
-Bot: Ask me about outfits, sizes, or orders. Type 'exit' to quit.
-
-You: Hi
-Bot: Hi! What are you looking for today? Casual or party outfit?
-You: Casual
-Bot: Great choice! Casual looks are always comfy 😄
-
-Bot: Here are some casual outfit ideas 😊
-
-👉 Outfit 1:
-• White oversized t-shirt
-• Light blue denim jeans
-• White sneakers
-
-👉 Outfit 2:
-• Pastel hoodie
-• Black joggers
-• Chunky sneakers
-
-👉 Outfit 3:
-• Floral shirt
-• Beige chinos
-• Slip-on shoes
-
-You: Outfit 1
-
-Bot: I can help with sizing 😊
-Bot: What's your height? 165cm
-Bot: What size do you usually wear? 32
-
-Bot: Based on your input:
-• Tops: Go with your regular size (32)
-• Bottoms: Check waist measurements for best fit
-
-Bot: Suggested outfits in your size:
-
-👉 Outfit 1:
-• Regular fit t-shirt
-• Slim fit jeans
-
-👉 Outfit 2:
-• Relaxed fit shirt
-• Straight trousers
-
-👉 Outfit 3:
-• Oversized sweatshirt
-• Joggers
-
-You: Thank You
-Bot: I didn’t understand that.
-Bot: Try asking about casual, party, size, or orders.
-
-You: Orders
-Bot: Please enter your order ID: ORD123
-Bot: Order ORD123 is out for delivery 🚚 (arriving in 1–2 days)
-
-Bot: Meanwhile, check these styles:
-
-👉 Outfit 1:
-• Denim jacket
-• White t-shirt
-• Black jeans
-
-👉 Outfit 2:
-• Polo t-shirt
-• Chinos
-• Sneakers
-
-👉 Outfit 3:
-• Kurta
-• Slim pants
-• Ethnic sandals
-
-You: Outfit 3
-
-Bot: I can help with sizing 😊
-Bot: What's your height? 180cm
-Bot: What size do you usually wear? 32
-
-Bot: Based on your input:
-• Tops: Go with your regular size (32)
-• Bottoms: Check waist measurements for best fit
-
-Bot: Suggested outfits in your size:
-
-👉 Outfit 1:
-• Regular fit t-shirt
-• Slim fit jeans
-
-👉 Outfit 2:
-• Relaxed fit shirt
-• Straight trousers
-
-👉 Outfit 3:
-• Oversized sweatshirt
-• Joggers
-
-You: exit
-Bot: Stay stylish! Goodbye ✨
-
-
-'''
+plt.figure(figsize=(8, 5))
+plt.scatter(
+    X_pca[:, 0],
+    X_pca[:, 1],
+    c=clusters,
+    cmap="viridis",
+    s=20
+)
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("K-Means Sales Clusters")
+plt.colorbar(label="Cluster")
+plt.show()
